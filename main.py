@@ -30,10 +30,10 @@ def calibration():
     ]
 
     # On crée un échiquier
-    for i in range(1, SCALE[0]-2):
-        for j in range(1, SCALE[1]-2):
-            caseColor = 255 * (i * j % 2) # Alternate between black and white boxes
-            cv.rectangle(imgCalib, ((i+j)*GRID_DIV), ((i+j+2)*GRID_DIV), caseColor, -1)
+    for i in range(1, SCALE[0]-1):
+        for j in range(1, SCALE[1]-1):
+            caseColor = 255 * ((i+j) % 2) # Alternate between black and white boxes
+            cv.rectangle(imgCalib, (i*GRID_DIV, j*GRID_DIV), ((i+1)*GRID_DIV, (j+1)*GRID_DIV), caseColor, -1)
 
     cv.imshow('image', imgCalib)
     
@@ -42,16 +42,17 @@ def calibration():
     # TODO: get feed from camera
     frame = 1 # Capter la première frame de la caméra pour le setup
 
-    captedCornerPoints = []
-    cv.findChessboardCorners(frame, SCALE, captedCornerPoints)
+    # captedCornerPoints = []
+    # cv.findChessboardCorners(frame, SCALE, captedCornerPoints)
 
     # Récupération de l'homographie entre l'image projetée et l'image captée
-    H, status = cv.findHomography(cornerPoints, captedCornerPoints)
+    # H, status = cv.findHomography(cornerPoints, captedCornerPoints)
 
     # On ferme l'image de calibration
-    cv.destroyAllWindows()
+    # cv.destroyAllWindows()
+    cv.waitKey(0)
 
-    return H
+    # return H
 
 
 
