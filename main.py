@@ -4,6 +4,11 @@ import numpy as np
 # Dimensions de l'image projetée
 IMG_W = 1920
 IMG_H = 1080
+SCALE = (16, 9)
+GRID_DIV = int(IMG_W / SCALE[0])
+
+# TODO: get feed from camera
+frame = 1 # Chopper la première frame de la caméra pour le setup
 
 def calibration():
     """
@@ -17,30 +22,35 @@ def calibration():
     """
 
     # Création d'une image blanche
-    imgCalib = np.ones(shape=(IMG_H, IMG_W, 4), dtype=np.float32) * 255
+    imgCalib = np.ones(shape=(IMG_H, IMG_W), dtype=np.float32) * 255
 
     # On positionne nos marqueurs aux quatre coins de l'image
-    sourcePoints = [
-        (int(IMG_W/10), int(IMG_H/10)),
-        (int(9*IMG_W/10), int(IMG_H/10)),
-        (int(IMG_W/10), int(9*IMG_H/10)),
-        (int(9*IMG_W/10), int(9*IMG_H/10))
+    cornerPoints = [
+        (GRID_DIV, GRID_DIV),
+        (IMG_W - GRID_DIV, GRID_DIV),
+        (GRID_DIV, IMG_H - GRID_DIV),
+        (IMG_W - GRID_DIV, IMG_H - GRID_DIV)
     ]
 
-    for pt in sourcePoints:
-        cv.circle(imgCalib, center=(pt), radius=4, color=(0,0,0), thickness=8)
+    # On crée un échiquier
+    for i in range(1, SCALE[0]-1):
+        for j in range(1, SCALE[1]-1):
+            caseColor = 255 * (i * j % 2) # Alternate between black and white boxes
+            cv.rectangle(imgCalib, ((i+j)*GRID_DIV), ((i+j+2)*GRID_DIV), caseColor, -1)
 
     cv.imshow('image', imgCalib)
-    cv.waitKey(0)
     
-    ###
-    # RECUPERER COORDONNEES PROJETEES
-    captedPoints = [] #placeholder
-    ###
+    # Récupération des points de l'image projetée
+    captedCornerPoints = []
+    cv.findChessboardCorners(frame, SCALE, captedCornerPoints)
 
     # Récupération de l'homographie entre l'image projetée et l'image captée
-    # H, status = cv.findHomography(sourcePoints, captedPoints)
-    # return H
+    H, status = cv.findHomography(cornerPoints, captedCornerPoints)
+
+    # On ferme l'image de calibration
+    cv.destroyAllWindows()
+
+    return H
 
 
 
@@ -48,4 +58,5 @@ def main():
     calibration()
 
 
-main()
+if __name__ == "__main__":
+    main()
