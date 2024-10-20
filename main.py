@@ -7,9 +7,6 @@ IMG_H = 1080
 SCALE = (16, 9)
 GRID_DIV = int(IMG_W / SCALE[0])
 
-# TODO: get feed from camera
-frame = 1 # Chopper la première frame de la caméra pour le setup
-
 def calibration():
     """
     Fonction d'initialisation qui :
@@ -33,14 +30,18 @@ def calibration():
     ]
 
     # On crée un échiquier
-    for i in range(1, SCALE[0]-1):
-        for j in range(1, SCALE[1]-1):
+    for i in range(1, SCALE[0]-2):
+        for j in range(1, SCALE[1]-2):
             caseColor = 255 * (i * j % 2) # Alternate between black and white boxes
             cv.rectangle(imgCalib, ((i+j)*GRID_DIV), ((i+j+2)*GRID_DIV), caseColor, -1)
 
     cv.imshow('image', imgCalib)
     
     # Récupération des points de l'image projetée
+    
+    # TODO: get feed from camera
+    frame = 1 # Capter la première frame de la caméra pour le setup
+
     captedCornerPoints = []
     cv.findChessboardCorners(frame, SCALE, captedCornerPoints)
 
