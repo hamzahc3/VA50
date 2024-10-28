@@ -42,21 +42,41 @@ a_stare_path = a_star(Start_square, End_square, squares)
 class Entite:
     def __init__(self, pathAlgo, health=100, speed=1, damage=10):
         self.pos = Start_square.pos  # Starting position
-        self.size = 5  # Size of the entity
-        self.pathAlgo = pathAlgo  # Pathfinding algorithm (e.g., "A*")
-        self.health = health  # Health of the enemy
-        self.speed = speed  # Speed of the enemy
-        self.damage = damage  # Damage caused by the enemy
-        self.target = None  # Target square or entity
+        self.size = 5  # the size
+        self.pathAlgo = pathAlgo  # Pathfinding algorithm the A*
+        self.health = health  # Health
+        self.speed = speed  # Speed of the entite
+        self.damage = damage  # Damage caused by the towers
+        self.target = End_square  # Target square the end square
 
     def path(self):
         if self.pathAlgo == "A*":
-            # Call the A* algorithm to find a path to the target
+            # Call the A* algorithm 
             return a_stare_path
         return None
-            
+    
+    def move(self):
+        if self.target:
+           
+            pass
+
+    def take_damage(self, amount):
+        self.health -= amount
+        if self.health <= 0:
+            self.die()
+
+    def die(self):
+      
+        print("Enemy has died.")
+
+    def check_alive(self):
+        return self.health > 0
+
+    def set_target(self, target):
+        self.target = target 
+
 entites = []
-num_entites = 1
+num_entites = 2
 for i in range(num_entites):
     entites.append(Entite("A*"))
 
