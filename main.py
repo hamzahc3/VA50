@@ -40,13 +40,20 @@ a_stare_path = a_star(Start_square, End_square, squares)
 
 
 class Entite:
-    def __init__(self, pathAlgo):
-        self.pos = Start_square.pos
-        self.size = 5
-        self.pathAlgo = pathAlgo
+    def __init__(self, pathAlgo, health=100, speed=1, damage=10):
+        self.pos = Start_square.pos  # Starting position
+        self.size = 5  # Size of the entity
+        self.pathAlgo = pathAlgo  # Pathfinding algorithm (e.g., "A*")
+        self.health = health  # Health of the enemy
+        self.speed = speed  # Speed of the enemy
+        self.damage = damage  # Damage caused by the enemy
+        self.target = None  # Target square or entity
+
     def path(self):
-        if self.path == "A*":
-            return 0
+        if self.pathAlgo == "A*":
+            # Call the A* algorithm to find a path to the target
+            return a_stare_path
+        return None
             
 entites = []
 num_entites = 1
