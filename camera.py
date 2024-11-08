@@ -1,114 +1,119 @@
 import cv2 as cv
 import numpy as np
 from matplotlib import pyplot as plt
-import time
-
 import pyrealsense2 as rs
 
 # Dimensions de l'image projetée
 IMG_W = 1280
 IMG_H = 720
 SCALE = (16, 9)
-GRID_DIV = int(IMG_W / SCALE[0])
 
-def marqueur():
+CALIB_THRESHOLD = 30
+
+
+
+def flatImage(n):
     """
-    Fonction d'initialisation qui :
-    - Crée l'image virtuelle avec les marqueurs
-    - Projète ces marqueurs
+    Fonction d'initialisation qui crée l'image virtuelle avec les marqueurs
+
+    :return: L'image blanche à projeter
     """
 
     # Création d'une image blanche
-    imgCalib = np.ones(shape=(IMG_H, IMG_W), dtype=np.float32) * 255
+    imgFlat = np.ones(shape=(IMG_H, IMG_W), dtype=np.float32) * n
 
-    # On positionne nos marqueurs aux quatre coins de l'image
-    cornerPoints = [
-        (GRID_DIV, GRID_DIV),
-        (IMG_W - GRID_DIV, GRID_DIV),
-        (GRID_DIV, IMG_H - GRID_DIV),
-        (IMG_W - GRID_DIV, IMG_H - GRID_DIV)
-    ]
+    return imgFlat
 
-    # On crée un échiquier
-    for i in range(1, SCALE[0]-1):
-        for j in range(1, SCALE[1]-1):
-            caseColor = 255 * ((i+j) % 2) # Alternate between black and white boxes
-            cv.rectangle(imgCalib, (i*GRID_DIV, j*GRID_DIV), ((i+1)*GRID_DIV, (j+1)*GRID_DIV), caseColor, -1)
 
-    cv.imshow('image', imgCalib)
-    cv.waitKey(0)
 
-    # return H
 
-def calibration():
+def calibration(imageCamera):
     """
     - Récupère leur position via la caméra
     - En tire la matrice d'homographie
 
     :return: La matrice d'homographie
     """
-    # Récupération des points de l'image projetée
     
-    # TODO: get feed from camera
-    frame = 1 # Capter la première frame de la caméra pour le setup
+    # Coordonnées de l'image projetée pour la calibration
+    # On positionne nos marqueurs aux quatre coins de l'image
+    cornerPoints = np.float32([
+        (0, 0),
+        (0, IMG_H),
+        (IMG_W, IMG_H),
+        (IMG_W, 0)
+    ])
 
-    # captedCornerPoints = []
-    # cv.findChessboardCorners(frame, SCALE, captedCornerPoints)
+    captedCornerPoints = cornerPoints.copy()
+    
+    cv.imshow("RenderImage", imageCamera)
+    imageContours = imageCamera.copy()
 
-    # Récupération de l'homographie entre l'image projetée et l'image captée
-    # H, status = cv.findHomography(cornerPoints, captedCornerPoints)
+    # Getting corners from the projected white image
+    gray = cv.cvtColor(imageCamera, cv.COLOR_BGR2GRAY)
+    blurred = cv.GaussianBlur(gray, (5, 5), 0)
+    _, thresh = cv.threshold(blurred, CALIB_THRESHOLD, 255, cv.THRESH_BINARY) 
+    contours, _ = cv.findContours(thresh, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-    # On ferme l'image de calibration
-    # cv.destroyAllWindows()
+    # Getting only the contour with the largest area
+    # -> contour of the projected image
+    contour = None
+    areas = []
 
-def camTest():
-    # Create a context object. This object owns the handles to all connected realsense devices
-    pipeline = rs.pipeline()
-    pipeline.start()
+    for elem in contours:
+        areas.append(cv.contourArea(elem))
 
-    align = rs.align(rs.stream.color)
+    for index, elem in enumerate(areas):
+        if elem == max(areas):
+            contour = contours[index]
 
-    try:
-        while True:
-            # Create a pipeline object. This object configures the streaming camera and owns it's handle
-            frames = pipeline.wait_for_frames()
-            depth = frames.get_depth_frame()
-            if not depth: continue
+    # Once a contour is found:
+    if len(contours) > 0:
+        # Calculate the perimeter of the contour
+        # Approximate the contour with a polygon (epsilon controls the approximation accuracy)
+        perimeter = cv.arcLength(contour, True)
+        epsilon = 0.02 * perimeter  # Adjust epsilon to control the approximation accuracy
+        approxContour = cv.approxPolyDP(contour, epsilon, True)
+        cv.drawContours(imageContours, [approxContour], 0, (0, 255, 0), 3)
+    else:
+        approxContour = []
 
-            alignedFrames = align.process(frames)
+    cv.imshow("Contours", imageContours)
+    cv.imshow("Thresh", thresh)
 
-            depthFrame = alignedFrames.get_depth_frame()
-            depthImage = np.asanyarray(depthFrame.get_data())*5
-            depthImage = cv.rotate(depthImage, cv.ROTATE_180)
-            depthImage = np.dstack([depthImage, depthImage, depthImage])
+    # Get corners in correct type
+    if len(approxContour) == 4:
+        for index, point in enumerate(approxContour):
+            captedCornerPoints[index][0], captedCornerPoints[index][1] = point[0][0], point[0][1]
 
-            colorFrame = alignedFrames.get_color_frame()
-            colorImage = np.asanyarray(colorFrame.get_data())
-            colorImage = cv.rotate(colorImage, cv.ROTATE_180)
-            colorImage = cv.cvtColor(colorImage, cv.COLOR_RGB2BGR)
+    return captedCornerPoints, cornerPoints
 
-            # # Print a simple text-based representation of the image, by breaking it into 10x20 pixel regions and approximating the coverage of pixels within one meter
-            # coverage = [0]*64
-            # for y in range(480):
-            #     for x in range(640):
-            #         dist = depth.get_distance(x, y)
-            #         if 0 < dist and dist < 1:
-            #             coverage[x//10] += 1
+def camLoop(alignedFrames):
 
-            #     if y%20 is 19:
-            #         line = ""
-            #         for c in coverage:
-            #             line += " .:nhBXWW"[c//25]
-            #         coverage = [0]*64
-            #         print(line)
+    depthFrame = alignedFrames.get_depth_frame()
+    depthImage = np.asanyarray(depthFrame.get_data())*5
+    depthImage = cv.rotate(depthImage, cv.ROTATE_180)
+    depthImage = np.dstack([depthImage, depthImage, depthImage])
 
-            cv.imshow("RenderImage", colorImage)
-            cv.imshow("Render", depthImage)
-            cv.waitKey(0)
+    colorFrame = alignedFrames.get_color_frame()
+    colorImage = np.asanyarray(colorFrame.get_data())
+    colorImage = cv.rotate(colorImage, cv.ROTATE_180)
+    colorImage = cv.cvtColor(colorImage, cv.COLOR_RGB2BGR)
 
-    finally:
-        pipeline.stop()
+    # Proceed to calibration and get reference depth
+    # If done a second time, stops the loop
+    if cv.pollKey() != -1 and keyInput == 0:
+        keyInput += 1
+        referenceDepth = depthImage
+        H = calibration(colorImage)
+        cv.destroyWindow("Marqueurs")
+    
+    if keyInput == 1:
+        depthImage = cv.absdiff(depthImage, referenceDepth)
+
+    cv.imshow("RenderImage", colorImage)
+    cv.imshow("RenderDepth", depthImage)
 
 if __name__=="__main__":
     # marqueur()
-    camTest()
+    camLoop()
