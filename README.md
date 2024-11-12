@@ -19,7 +19,7 @@ Langage utilisé : Python 3.10
 Packages utilisés :
 
 - **opencv-python**
-- **realsense2**
+- **pyrealsense2**
 - numpy
 - matplotlib
 - time
