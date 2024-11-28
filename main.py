@@ -5,6 +5,7 @@ import pyrealsense2 as rs
 import time
 
 import camera
+from camera import IMG_H, IMG_W
 
 
 
@@ -26,7 +27,7 @@ def main():
     # Blank image to get correct data type
     refImage = imgCalibBlack.copy()
     refDepth = imgCalibBlack.copy()
-    depthInit = False
+    refInit = False
 
     # Time delay used for calibration flow
     timeNow = time.time()
@@ -47,14 +48,20 @@ def main():
 
             alignedFrames = align.process(frames)
 
+            # Get color feed from camera
+            colorFrame = alignedFrames.get_color_frame()
+            colorImage = np.asanyarray(colorFrame.get_data())
+            colorImage = cv.rotate(colorImage, cv.ROTATE_180)
+            colorImage = cv.cvtColor(colorImage, cv.COLOR_RGB2BGR)
+
+            # Get depth feed from camera
+            depthFrame = alignedFrames.get_depth_frame()
+            depthImage = np.asanyarray(depthFrame.get_data())*5
+            depthImage = cv.rotate(depthImage, cv.ROTATE_180)
+            depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
+
             # Calibration
             if not calibDone:
-
-                # Get color feed from camera
-                colorFrame = alignedFrames.get_color_frame()
-                colorImage = np.asanyarray(colorFrame.get_data())
-                colorImage = cv.rotate(colorImage, cv.ROTATE_180)
-                colorImage = cv.cvtColor(colorImage, cv.COLOR_RGB2BGR)
 
                 # Project a black image to use as a reference
                 # Then, project a white image to use as a marker
@@ -80,14 +87,12 @@ def main():
             else:
                 # Creating reference depth image
                 # (non updated depth image used to check depth differences)
-                if not depthInit:
-                    refDepth = alignedFrames.get_depth_frame()
-                    refDepth = np.asanyarray(refDepth.get_data())*5
-                    refDepth = cv.rotate(refDepth, cv.ROTATE_180)
-                    refDepth = cv.warpPerspective(refDepth, H, (camera.IMG_W, camera.IMG_H))
-                    depthInit = True
+                if not refInit:
+                    refDepth = depthImage.copy()
+                    refColor = colorImage.copy()
+                    refInit = True
 
-                camera.camLoop(alignedFrames, H, refDepth)
+                _, _ = camera.createDiffImages(H, depthImage, refDepth, colorImage, refColor)
 
                 # Stop condition
                 if cv.pollKey() != -1 and delta > TIME_LIMIT:

@@ -89,43 +89,31 @@ def calibration(imageCamera):
 
     return captedCornerPoints, cornerPoints
 
-def camLoop(alignedFrames, H, refDepth):
+def createDiffImages(H, depthImage, refDepth, colorImage,refColor):
     """
     Core of the image treatment
 
-    :alignedFrames: Camera feed
-    :H: Perspective matrix
-    :refDepth: Reference depth image for comparison and differences
+    :param H (MatLike): Perspective matrix
+    :param depthImage (MatLike): Active depth from the camera feed
+    :param refDepth (MatLike): Static depth image taken at initialisation
+    :param colorImage (MatLike): Active color from the camera feed
+    :param refColor (MatLike): Static color image taken at initialisation
+
+    :return depthDiff (MatLike): Difference between depth images
+    :return colorDiff (MatLike): Difference between color images
     """
-    depthFrame = alignedFrames.get_depth_frame()
-    depthImage = np.asanyarray(depthFrame.get_data())*5
-    depthImage = cv.rotate(depthImage, cv.ROTATE_180)
-    depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
 
     depthDiff = cv.absdiff(refDepth, depthImage)*DEPTH_FACTOR
 
-    colorFrame = alignedFrames.get_color_frame()
-    colorImage = np.asanyarray(colorFrame.get_data())
-    colorImage = cv.rotate(colorImage, cv.ROTATE_180)
-    colorImage = cv.cvtColor(colorImage, cv.COLOR_RGB2BGR)
-    colorImage = cv.warpPerspective(colorImage, H, (IMG_W, IMG_H))
+    colorDiff = cv.absdiff(refColor, colorImage)
 
-    # Proceed to calibration and get reference depth
-    # If done a second time, stops the loop
-    # if cv.pollKey() != -1 and delta > LIMIT:
-    #     keyInput += 1
-    #     referenceDepth = depthImage
-    #     H = calibration(colorImage)
-    #     cv.destroyWindow("Marqueurs")
-    
-    # if keyInput == 1:
-    #     depthImage = cv.absdiff(depthImage, referenceDepth)
+    # cv.imshow("RenderImage", colorImage)
+    # cv.imshow("RenderDepth", depthImage)
+    # cv.imshow("Ref Depth", refDepth)
+    # cv.imshow("Depth diff", depthDiff)
 
-    cv.imshow("RenderImage", colorImage)
-    cv.imshow("RenderDepth", depthImage)
-    cv.imshow("Ref Depth", refDepth)
-    cv.imshow("Depth diff", )
+    return depthDiff, colorDiff
 
 if __name__=="__main__":
     # marqueur()
-    camLoop()
+    createDiffImages()
