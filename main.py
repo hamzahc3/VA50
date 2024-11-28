@@ -6,7 +6,7 @@ import time
 
 import camera
 from camera import IMG_H, IMG_W
-
+from contourdetect import detectAndDrawContours, detectDepthContours
 
 
 def main():
@@ -58,7 +58,6 @@ def main():
             depthFrame = alignedFrames.get_depth_frame()
             depthImage = np.asanyarray(depthFrame.get_data())*5
             depthImage = cv.rotate(depthImage, cv.ROTATE_180)
-            depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
 
             # Calibration
             if not calibDone:
@@ -83,21 +82,37 @@ def main():
                     # print(H)
                     cv.destroyAllWindows()
                     timeNow = time.time()
-                    
-            else:
+
+            # Once calib is done, we wait for a second    
+            elif delta > 1:
+                # Warping images
+                depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
+                colorImage = cv.warpPerspective(colorImage, H, (IMG_W, IMG_H))
+
                 # Creating reference depth image
                 # (non updated depth image used to check depth differences)
                 if not refInit:
                     refDepth = depthImage.copy()
+                    print(refDepth)
                     refColor = colorImage.copy()
-                    refInit = True
+                    refInit = True 
 
-                _, _ = camera.createDiffImages(H, depthImage, refDepth, colorImage, refColor)
+                depthDiff, colorDiff = camera.createDiffImages(H, depthImage, refDepth, colorImage, refColor)
+                contours, ImageObjectContours = detectAndDrawContours(depthDiff)
+                # contours = detectDepthContours(refDepth, depthImage)
+
+                # Draw contours on the captured image
+                # cv.drawContours(colorImage, contours, -1, (0, 255, 0), 2)
+
+
+                cv.imshow("contours",ImageObjectContours)
+                
+               
 
                 # Stop condition
                 if cv.pollKey() != -1 and delta > TIME_LIMIT:
                     cv.destroyAllWindows()
-                    break
+                    break 
         
         
         

@@ -93,14 +93,16 @@ def createDiffImages(H, depthImage, refDepth, colorImage,refColor):
     """
     Core of the image treatment
 
-    :param H (MatLike): Perspective matrix
-    :param depthImage (MatLike): Active depth from the camera feed
-    :param refDepth (MatLike): Static depth image taken at initialisation
-    :param colorImage (MatLike): Active color from the camera feed
-    :param refColor (MatLike): Static color image taken at initialisation
+    Parameters:
+        H (MatLike): Perspective matrix
+        depthImage (MatLike): Active depth from the camera feed
+        refDepth (MatLike): Static depth image taken at initialisation
+        colorImage (MatLike): Active color from the camera feed
+        refColor (MatLike): Static color image taken at initialisation
 
-    :return depthDiff (MatLike): Difference between depth images
-    :return colorDiff (MatLike): Difference between color images
+    Return:
+        depthDiff (MatLike): Difference between depth images
+        colorDiff (MatLike): Difference between color images
     """
 
     depthDiff = cv.absdiff(refDepth, depthImage)*DEPTH_FACTOR
