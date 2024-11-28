@@ -88,28 +88,30 @@ def calibration(imageCamera):
 
     return captedCornerPoints, cornerPoints
 
-def camLoop(alignedFrames):
+def camLoop(alignedFrames, H):
 
     depthFrame = alignedFrames.get_depth_frame()
     depthImage = np.asanyarray(depthFrame.get_data())*5
     depthImage = cv.rotate(depthImage, cv.ROTATE_180)
     depthImage = np.dstack([depthImage, depthImage, depthImage])
+    depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
 
     colorFrame = alignedFrames.get_color_frame()
     colorImage = np.asanyarray(colorFrame.get_data())
     colorImage = cv.rotate(colorImage, cv.ROTATE_180)
     colorImage = cv.cvtColor(colorImage, cv.COLOR_RGB2BGR)
+    colorImage = cv.warpPerspective(colorImage, H, (IMG_W, IMG_H))
 
     # Proceed to calibration and get reference depth
     # If done a second time, stops the loop
-    if cv.pollKey() != -1 and keyInput == 0:
-        keyInput += 1
-        referenceDepth = depthImage
-        H = calibration(colorImage)
-        cv.destroyWindow("Marqueurs")
+    # if cv.pollKey() != -1 and delta > LIMIT:
+    #     keyInput += 1
+    #     referenceDepth = depthImage
+    #     H = calibration(colorImage)
+    #     cv.destroyWindow("Marqueurs")
     
-    if keyInput == 1:
-        depthImage = cv.absdiff(depthImage, referenceDepth)
+    # if keyInput == 1:
+    #     depthImage = cv.absdiff(depthImage, referenceDepth)
 
     cv.imshow("RenderImage", colorImage)
     cv.imshow("RenderDepth", depthImage)

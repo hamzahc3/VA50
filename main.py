@@ -28,7 +28,7 @@ def main():
 
     # Time delay used for calibration flow
     timeNow = time.time()
-    TIME_LIMIT = 10
+    TIME_LIMIT = 4
 
 
     try:
@@ -72,10 +72,17 @@ def main():
                     # print(len(srcPts))
                     H = cv.getPerspectiveTransform(srcPts, dstPts)
                     # print(H)
-                    break
+                    cv.destroyAllWindows()
+                    timeNow = time.time()
                     
             else:
-                camera.camLoop()
+                camera.camLoop(alignedFrames, H)
+                if cv.pollKey() != -1 and delta > TIME_LIMIT:
+                    cv.destroyAllWindows()
+                    break
+        
+        
+        
     
     finally:
         pipeline.stop()
