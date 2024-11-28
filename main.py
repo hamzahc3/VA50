@@ -25,6 +25,8 @@ def main():
     imgCalibBlack = camera.flatImage(0)
     # Blank image to get correct data type
     refImage = imgCalibBlack.copy()
+    refDepth = imgCalibBlack.copy()
+    depthInit = False
 
     # Time delay used for calibration flow
     timeNow = time.time()
@@ -76,7 +78,18 @@ def main():
                     timeNow = time.time()
                     
             else:
-                camera.camLoop(alignedFrames, H)
+                # Creating reference depth image
+                # (non updated depth image used to check depth differences)
+                if not depthInit:
+                    refDepth = alignedFrames.get_depth_frame()
+                    refDepth = np.asanyarray(refDepth.get_data())*5
+                    refDepth = cv.rotate(refDepth, cv.ROTATE_180)
+                    refDepth = cv.warpPerspective(refDepth, H, (camera.IMG_W, camera.IMG_H))
+                    depthInit = True
+
+                camera.camLoop(alignedFrames, H, refDepth)
+
+                # Stop condition
                 if cv.pollKey() != -1 and delta > TIME_LIMIT:
                     cv.destroyAllWindows()
                     break

@@ -9,6 +9,7 @@ IMG_H = 720
 SCALE = (16, 9)
 
 CALIB_THRESHOLD = 30
+DEPTH_FACTOR = 5
 
 
 
@@ -88,13 +89,20 @@ def calibration(imageCamera):
 
     return captedCornerPoints, cornerPoints
 
-def camLoop(alignedFrames, H):
+def camLoop(alignedFrames, H, refDepth):
+    """
+    Core of the image treatment
 
+    :alignedFrames: Camera feed
+    :H: Perspective matrix
+    :refDepth: Reference depth image for comparison and differences
+    """
     depthFrame = alignedFrames.get_depth_frame()
     depthImage = np.asanyarray(depthFrame.get_data())*5
     depthImage = cv.rotate(depthImage, cv.ROTATE_180)
-    depthImage = np.dstack([depthImage, depthImage, depthImage])
     depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
+
+    depthDiff = cv.absdiff(refDepth, depthImage)*DEPTH_FACTOR
 
     colorFrame = alignedFrames.get_color_frame()
     colorImage = np.asanyarray(colorFrame.get_data())
@@ -115,6 +123,8 @@ def camLoop(alignedFrames, H):
 
     cv.imshow("RenderImage", colorImage)
     cv.imshow("RenderDepth", depthImage)
+    cv.imshow("Ref Depth", refDepth)
+    cv.imshow("Depth diff", )
 
 if __name__=="__main__":
     # marqueur()
