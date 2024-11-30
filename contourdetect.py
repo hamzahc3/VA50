@@ -44,22 +44,31 @@ def detectAndDrawContours(diffImage):
     contours, _ = cv.findContours(cleaned_diff, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
     # Keep contours with a minimal area and make polygons
-    contours = [c for c in contours if cv.contourArea(c) > 600]
-    contoursSmooth = []
-    for i, c in enumerate(contours):
-        perimeter = cv.arcLength(c, True)
-        epsilon = 0.02 * perimeter  # Adjust epsilon to control the approximation accuracy
-        approxContour = cv.approxPolyDP(c, epsilon, True)
-        if len(approxContour) >= 4:
-            contoursSmooth.append(approxContour)
+    contours = [c for c in contours if cv.contourArea(c) > 1500]
+    # contoursSmooth = []
+    # for i, c in enumerate(contours):
+    #     perimeter = cv.arcLength(c, True)
+    #     epsilon = 0.02 * perimeter  # Adjust epsilon to control the approximation accuracy
+    #     approxContour = cv.approxPolyDP(c, epsilon, True)
+    #     if len(approxContour) >= 4:
+    #         contoursSmooth.append(approxContour)
     
     # Convert the captured image to BGR for contour drawing
     diffImage = cv.cvtColor(diffImage, cv.COLOR_GRAY2BGR)
 
     # Draw contours on the captured image
+    # imC = np.array(cv.applyColorMap(diffImage, cv.COLORMAP_HSV))
     cv.drawContours(diffImage, contours, -1, (0, 255, 0), 2)
+    
+    # Color map (don't work well)
+    # image = np.zeros_like(imC)
+    # for i in range(len(diffImage)):
+    #     for j in range(len(diffImage[0])):
+    #         if not(diffImage[i][j][0] <= 2):
+    #             image[i][j] = imC[i][j]
+    # cv.imshow("colorMap", image)
 
-    cv.imshow("thresh", thresholded_diff)
+    # cv.imshow("thresh", thresholded_diff)
 
     
 

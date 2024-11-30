@@ -102,13 +102,15 @@ def main():
                 # contours = detectDepthContours(refDepth, depthImage)
 
                 # Draw contours on the captured image
-                # cv.drawContours(colorImage, contours, -1, (0, 255, 0), 2)
+                cv.drawContours(ImageObjectContours, contours, -1, (0, 0, 255), thickness=cv.FILLED)
 
-
+                cv.namedWindow("contours", cv.WINDOW_NORMAL)
+                cv.setWindowProperty("contours", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
                 cv.imshow("contours",ImageObjectContours)
+
                 
                
-
+               
                 # Stop condition
                 if cv.pollKey() != -1 and delta > TIME_LIMIT:
                     cv.destroyAllWindows()
