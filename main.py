@@ -6,7 +6,7 @@ import time
 
 import camera
 from camera import IMG_H, IMG_W
-from contourdetect import detectAndDrawContours, detectDepthContours
+from contourdetect import *
 
 
 def main():
@@ -28,6 +28,10 @@ def main():
     refImage = imgCalibBlack.copy()
     refDepth = imgCalibBlack.copy()
     refInit = False
+
+    # Blank list of contour centers
+    centers = []
+    oldCenters = []
 
     # Time delay used for calibration flow
     timeNow = time.time()
@@ -65,6 +69,7 @@ def main():
                 # Project a black image to use as a reference
                 # Then, project a white image to use as a marker
                 cv.imshow("", imgCalibBlack if delta < TIME_LIMIT else imgCalibWhite)
+                cv.setWindowProperty("", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
 
                 # Get reference image once the camera feed is settled
                 if delta >= TIME_LIMIT - 1 and delta <= TIME_LIMIT:
@@ -85,6 +90,8 @@ def main():
 
             # Once calib is done, we wait for a second    
             elif delta > 1:
+                oldCenters, centers = centers.copy(), []
+
                 # Warping images
                 depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
                 colorImage = cv.warpPerspective(colorImage, H, (IMG_W, IMG_H))
@@ -104,9 +111,22 @@ def main():
                 # Draw contours on the captured image
                 cv.drawContours(ImageObjectContours, contours, -1, (0, 0, 255), thickness=cv.FILLED)
 
-                cv.namedWindow("contours", cv.WINDOW_NORMAL)
-                cv.setWindowProperty("contours", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
-                cv.imshow("contours",ImageObjectContours)
+                # Get the centers of the detected contours at the first frame
+                # For the following frames, only keep corresponding contours
+                # tmpCenters = getContourCenters(contours)
+                # for c in oldCenters:
+                #     for t in tmpCenters:
+                #         if getDistance(c, t) < 15:
+                #             centers.append(c)
+
+                centers = getContourCenters(contours)
+                # Show centers of kept contours
+                for c in centers:
+                    cv.circle(ImageObjectContours, c, 10, (255, 150, 0), -1)
+
+                cv.namedWindow("detectObjet", cv.WINDOW_NORMAL)
+                # cv.setWindowProperty("detectObjet", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+                cv.imshow("detectObjet",ImageObjectContours)
 
                 
                

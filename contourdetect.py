@@ -75,3 +75,36 @@ def detectAndDrawContours(diffImage):
     return contours, diffImage
 
 
+def getContourCenters(cnts):
+    """
+    Checks all the contours given to determine which ones correspond to stable objects
+
+    Arguments:
+        cnts: all contours detected
+    
+    Return:
+        centers: (cx, cy) coordinates of center points of contours
+    """
+
+    l = []
+    for cnt in cnts:
+        M = cv.moments(cnt)
+        if M['m00']!=0:
+            cx = int(M['m10']/M['m00'])
+            cy = int(M['m01']/M['m00'])
+            l.append((cx, cy))
+    return l
+
+def getDistance(p1, p2):
+    """
+    Gives the euclidian between two points
+    
+    Arguments:
+        p1, p2: points
+    
+    Return:
+        d (float): distance between the two points
+    """
+
+    v = (p2[0]-p1[0], p2[1]-p1[1])
+    return np.sqrt(v[0]**2 + v[1]**2)
