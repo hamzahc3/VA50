@@ -108,3 +108,25 @@ def getDistance(p1, p2):
 
     v = (p2[0]-p1[0], p2[1]-p1[1])
     return np.sqrt(v[0]**2 + v[1]**2)
+
+def getMatches(pts1, pts2, thresh=40):
+    """
+    Gives all points from two lists that match
+    A pair matches if their distance is lower than the threshold value
+
+    Arguments:
+        pts1: first list of points
+        pts2: second list of points
+        thresh: distance threshold
+
+    Return:
+        list: Elements of the first list that have matches in the second list
+    """
+
+    ret = []
+    for p1 in pts1:
+        for p2 in pts2:
+            if getDistance(p1, p2) < thresh:
+                ret.append(p1)
+
+    return ret

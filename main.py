@@ -30,12 +30,16 @@ def main():
     refInit = False
 
     # Blank list of contour centers
-    centers = []
-    oldCenters = []
+    centers, oldCenters = [], []
 
     # Time delay used for calibration flow
-    timeNow = time.time()
-    TIME_LIMIT = 4
+    timeNow = time.time() # Ref for calibration
+    TIME_LIMIT = 4 # Time after which the calibration goes to the next step
+
+    # Time delay for object detection update
+    centerRef = time.time()
+    centerDelta = 0
+    CENTER_UPDATE_INTERVAL = 3
 
 
     try:
@@ -88,9 +92,13 @@ def main():
                     cv.destroyAllWindows()
                     timeNow = time.time()
 
-            # Once calib is done, we wait for a second    
+
+
+
+            # Once calib is done, we wait for a second to give the program time to settle  
             elif delta > 1:
-                oldCenters, centers = centers.copy(), []
+                centerDelta = time.time() - centerRef # Updating delta
+                oldCenters = centers.copy() # Saving the object centers of last frame
 
                 # Warping images
                 depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
@@ -111,25 +119,29 @@ def main():
                 # Draw contours on the captured image
                 cv.drawContours(ImageObjectContours, contours, -1, (0, 0, 255), thickness=cv.FILLED)
 
-                # Get the centers of the detected contours at the first frame
-                # For the following frames, only keep corresponding contours
-                # tmpCenters = getContourCenters(contours)
-                # for c in oldCenters:
-                #     for t in tmpCenters:
-                #         if getDistance(c, t) < 15:
-                #             centers.append(c)
+                # Get corresponding contours
+                # Update regularly to take in new contours
+                if int(centerDelta) % CENTER_UPDATE_INTERVAL+1 == CENTER_UPDATE_INTERVAL:
+                    oldCenters = []
+                    centerRef = time.time()
 
+                # If we don't have any saved points, we take new ones
+                # It allows for updating and checking if new points are to be added
                 centers = getContourCenters(contours)
-                # Show centers of kept contours
+                if len(oldCenters) != 0:
+                    centers = getMatches(oldCenters, centers)
+
+                # DEBUG: Show centers of kept contours
                 for c in centers:
                     cv.circle(ImageObjectContours, c, 10, (255, 150, 0), -1)
+                for c in oldCenters:
+                    cv.circle(ImageObjectContours, c, 5, (0, 255, 150), -1)
+                
 
                 cv.namedWindow("detectObjet", cv.WINDOW_NORMAL)
                 # cv.setWindowProperty("detectObjet", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
                 cv.imshow("detectObjet",ImageObjectContours)
 
-                
-               
                
                 # Stop condition
                 if cv.pollKey() != -1 and delta > TIME_LIMIT:
