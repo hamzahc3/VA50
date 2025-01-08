@@ -8,6 +8,9 @@ import camera
 from camera import IMG_H, IMG_W
 from contourdetect import *
 
+from GameCode import turret, world, enemy, game
+import pygame as pg
+
 
 def main():
     
@@ -40,6 +43,33 @@ def main():
     centerRef = time.time()
     centerDelta = 0
     CENTER_UPDATE_INTERVAL = 3
+    centerUpdated = False # Flag to know when the center list has been updated
+
+    # Delays for the game part of the project
+    DELAY_ENEMY_SPAWN = 5
+    DELAY_TURRET_SHOOT = 2
+    enemyRef = time.time()
+    enemyDelta = 0
+    turretRef = time.time()
+    turretDelta = 0
+
+    # Other game data
+    screen = None
+    wrld = None
+    bgImg = None
+    path = [ # Path for enemies to follow
+        (-50, 300),
+        (310, 300),
+        (310, 160),
+        (990, 160),
+        (990, 410),
+        (710, 410),
+        (710, 610),
+        (1320, 610)
+    ]
+    # Create enemy and turret group
+    enemyGroup = pg.sprite.Group()
+    turretGroup = pg.sprite.Group()
 
 
     try:
@@ -90,15 +120,29 @@ def main():
                     H = cv.getPerspectiveTransform(srcPts, dstPts)
                     # print(H)
                     cv.destroyAllWindows()
+
+                    # Re init
+                    pg.init()
                     timeNow = time.time()
+                    screen = pg.display.set_mode((IMG_W, IMG_H))
+                    pg.display.set_caption("")
+                    bgImg = pg.image.load("GameCode/bg.png").convert_alpha()
+                    wrld = world.World(bgImg)
+
 
 
 
 
             # Once calib is done, we wait for a second to give the program time to settle  
             elif delta > 1:
-                centerDelta = time.time() - centerRef # Updating delta
-                oldCenters = centers.copy() # Saving the object centers of last frame
+
+                # Updating timers
+                centerDelta = time.time() - centerRef
+                enemyDelta = time.time() - enemyRef
+                turretDelta = time.time() - turretRef
+
+                # Saving the object centers of last frame
+                oldCenters = centers.copy()
 
                 # Warping images
                 depthImage = cv.warpPerspective(depthImage, H, (IMG_W, IMG_H))
@@ -108,7 +152,6 @@ def main():
                 # (non updated depth image used to check depth differences)
                 if not refInit:
                     refDepth = depthImage.copy()
-                    print(refDepth)
                     refColor = colorImage.copy()
                     refInit = True 
 
@@ -121,9 +164,10 @@ def main():
 
                 # Get corresponding contours
                 # Update regularly to take in new contours
-                if int(centerDelta) % CENTER_UPDATE_INTERVAL+1 == CENTER_UPDATE_INTERVAL:
+                if not centerUpdated and int(centerDelta) % CENTER_UPDATE_INTERVAL+1 == CENTER_UPDATE_INTERVAL:
                     oldCenters = []
                     centerRef = time.time()
+                    centerUpdated = True
 
                 # If we don't have any saved points, we take new ones
                 # It allows for updating and checking if new points are to be added
@@ -132,19 +176,44 @@ def main():
                     centers = getMatches(oldCenters, centers)
 
                 # DEBUG: Show centers of kept contours
-                for c in centers:
-                    cv.circle(ImageObjectContours, c, 10, (255, 150, 0), -1)
-                for c in oldCenters:
-                    cv.circle(ImageObjectContours, c, 5, (0, 255, 150), -1)
+                # for c in centers:
+                #     cv.circle(ImageObjectContours, c, 10, (255, 150, 0), -1)
+                # for c in oldCenters:
+                #     cv.circle(ImageObjectContours, c, 5, (0, 255, 150), -1)
+
+                # Recreate turrets at every point to keep updates
+                if centerUpdated:
+                    for t in turretGroup:
+                        t.kill()
+                    for c in centers:
+                        turr = turret.Turret(c)
+                        turretGroup.add(turr)
+                    centerUpdated = False
+                    print("Turrets:", len(turretGroup))
+
+                # Spawning interval
+                if int(enemyDelta) % DELAY_ENEMY_SPAWN+1 == DELAY_ENEMY_SPAWN:
+                    e = enemy.Enemy(path, speed=5)
+                    enemyGroup.add(e)
+                    enemyRef = time.time()
+
+                # Shooting interval
+                if int(turretDelta) % DELAY_TURRET_SHOOT+1 == DELAY_TURRET_SHOOT:
+                    for t in turretGroup:
+                        t.attack()
+                    turretRef = time.time()
+
+                for t in turretGroup:
+                    t.update(screen, enemyGroup)
                 
 
                 cv.namedWindow("detectObjet", cv.WINDOW_NORMAL)
                 # cv.setWindowProperty("detectObjet", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
                 cv.imshow("detectObjet",ImageObjectContours)
 
-               
+                # Run the game
                 # Stop condition
-                if cv.pollKey() != -1 and delta > TIME_LIMIT:
+                if game.gameLoop(screen, wrld, enemyGroup, turretGroup):
                     cv.destroyAllWindows()
                     break 
         
@@ -153,6 +222,7 @@ def main():
     
     finally:
         pipeline.stop()
+        pg.quit()
 
 
     

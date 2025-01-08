@@ -13,19 +13,21 @@ class Turret(pg.sprite.Sprite):
     Methods:
         draw(Surface): Draws the turret and its range circle on the given surface
         pickTarget(enemyGroup): Checks all enemies targets the first one in its range
-        shoot(enemy): Deals self.damage to the target enemy
-        update(): Shoots its current target, picks a target if none are current
+        attack(): Attacks the target the turret is currently keeping track of, and removes the store enemy to allow new tracking
+        update(): Draws the turret and tracks enemies
     """
     
     def __init__(self, pos, range=280, damage=5):
         pg.sprite.Sprite.__init__(self)
-        self.image = pg.image.load("GameCode/enemySprite.png").convert_alpha()
+
+        # Draw sprite on position
+        # self.image = pg.image.load("GameCode/enemySprite.png").convert_alpha()
+        # self.rect = self.image.get_rect()
+        # self.rect.center = pos
+
         self.damage = damage
-
-        self.rect = self.image.get_rect()
-        self.rect.center = pos
-
         self.target = None
+        self.pos = pos
 
         # Create range circle
         self.range = range
@@ -35,31 +37,30 @@ class Turret(pg.sprite.Sprite):
         pg.draw.circle(self.rangeImg, "grey100", (self.range, self.range), self.range)
         self.rangeImg.set_alpha(100)
         self.rangeRect = self.rangeImg.get_rect()
-        self.rangeRect.center = self.rect.center
+        self.rangeRect.center = self.pos
 
 
-    def update(self, enemyGroup):
+    def attack(self):
         if self.target:
-            self.shoot(self.target)
+            self.target.takeDamage(self.damage)
             self.target = None
-        else:
-            self.pickTarget(enemyGroup)
+
+    def update(self, surface, enemyGroup):
+        self.draw(surface)
+        self.pickTarget(enemyGroup)
 
     def draw(self, surface):
-        surface.blit(self.image, self.rect)
+        # surface.blit(self.image, self.rect)
         surface.blit(self.rangeImg, self.rangeRect)
 
     def pickTarget(self, enemyGroup):
         
-        xDis, yDist = 0, 0
+        xDist, yDist = 0, 0
         # Check 
         for enemy in enemyGroup:
-            xDist = enemy.pos[0] - self.rect.center[0]
-            yDist = enemy.pos[1] - self.rect.center[1]
+            xDist = enemy.pos[0] - self.pos[0]
+            yDist = enemy.pos[1] - self.pos[1]
             dist = math.sqrt(xDist**2 + yDist**2)
             if dist < self.range:
                 self.target = enemy
                 break
-
-    def shoot(self, enemy):
-        enemy.takeDamage(self.damage)
